@@ -36,6 +36,16 @@ def test_weigh_overload_gate_seal_flow():
     h = _auth(c)
     lanes = c.get("/api/lanes", headers=h).json()["items"]
     lane = next(x for x in lanes if x["lane_code"] == "LN-N-01-IN")
+    c.post(
+        "/api/bl",
+        headers=h,
+        json={
+            "bl_code": "BL-2026-0152",
+            "cargo_desc": "重件流程测",
+            "declared_gross_t": 52.0,
+            "vessel_voyage": "测航/001",
+        },
+    )
     axles = [
         {"axle": 1, "w": 10.0},
         {"axle": 2, "w": 14.0},
@@ -47,7 +57,7 @@ def test_weigh_overload_gate_seal_flow():
         headers=h,
         json={
             "lane_id": lane["id"],
-            "bl_ref": "BL-2026-0101",
+            "bl_ref": "BL-2026-0152",
             "vehicle_plate": "测A·00001",
             "axle_weights": axles,
             "ticket_code": "WT-FLOW-001",

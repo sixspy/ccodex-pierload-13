@@ -1,11 +1,11 @@
 export const sealViewTemplate = `
 <section class="panel">
   <h2>闸代快照</h2>
-  <p class="hint">封闸升代并写入清单摘要，供提单册对账引用。</p>
+  <p class="hint">封闸升代并写入清单摘要，供提单册对账引用。毛重不符禁封闸：快照读数与提单申报偏差超限即拒封，整笔回滚不升代。</p>
   <div class="form-row">
     <div><label>过磅票</label>
       <select v-model.number="sealForm.ticket_id">
-        <option v-for="t in sealableTickets" :key="t.id" :value="t.id">{{ t.ticket_code }}</option>
+        <option v-for="t in sealableTickets" :key="t.id" :value="t.id">{{ t.ticket_code }}{{ t.gross_matches_bl === false ? '（毛重不符·禁封）' : '' }}</option>
       </select>
     </div>
     <div><label>清单(可空)</label><input v-model="sealForm.manifest"/></div>
@@ -22,7 +22,7 @@ export const sealViewTemplate = `
         <td>{{ s.ticket_code }}</td>
         <td>{{ s.ticket_generation }}</td>
         <td class="mono">{{ shortText(s.manifest) }}</td>
-        <td><span class="badge pass">{{ s.status }}</span></td>
+        <td><span class="badge" :class="s.status==='已封闸' ? 'pass' : 'muted'">{{ s.status }}</span></td>
       </tr>
     </tbody>
   </table>

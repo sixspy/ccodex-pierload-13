@@ -39,5 +39,15 @@
     "status": "已封闸",
     "generation": 2,
     "created_at": "2026-01-10T08:30:00"
+  },
+  {
+    "ticket_code": "PL-M13",
+    "lane_code": "LN-N-01-IN",
+    "bl_ref": "BL-2026-0113",
+    "vehicle_plate": "沪D·集1313",
+    "axle_weights": [{"axle": 1, "w": 14.5}, {"axle": 2, "w": 15.0}, {"axle": 3, "w": 15.0}, {"axle": 4, "w": 14.0}],
+    "gross_t": 58.5,
+    "status": "已裁定",
+    "created_at": "2026-01-13T09:13:00"
   }
 ]

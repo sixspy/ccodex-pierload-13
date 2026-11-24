@@ -1,4 +1,4 @@
-"""提单册登记。"""
+"""提单册登记。毛重核对与封闸同一口径。"""
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from auth import AuthHeader, require_user, require_writer
 from db import connect, now_iso, write_audit
 from models import BlIn
+from validators import validate_bl_match
 
 router = APIRouter(tags=["bl"])
 
@@ -17,7 +18,24 @@ def list_bl(authorization: AuthHeader = None):
         rows = conn.execute(
             "SELECT * FROM bl_manifests ORDER BY bl_code"
         ).fetchall()
-        return {"items": [dict(r) for r in rows]}
+        items = []
+        for r in rows:
+            d = dict(r)
+            declared = float(d["declared_gross_t"])
+            tickets = conn.execute(
+                """SELECT gross_t FROM weigh_tickets
+                   WHERE bl_ref=? AND status<>'作废'""",
+                (d["bl_code"],),
+            ).fetchall()
+            d["ticket_sum_t"] = round(
+                sum(float(t["gross_t"]) for t in tickets), 3
+            )
+            d["gross_mismatch"] = any(
+                not validate_bl_match(declared, float(t["gross_t"]))
+                for t in tickets
+            )
+            items.append(d)
+        return {"items": items}
 
 
 @router.get("/api/bl/{bl_code}")
@@ -34,7 +52,15 @@ def get_bl(bl_code: str, authorization: AuthHeader = None):
                WHERE bl_ref=? ORDER BY id DESC""",
             (bl_code,),
         ).fetchall()
-        return {"bl": dict(row), "tickets": [dict(t) for t in tickets]}
+        declared = float(row["declared_gross_t"])
+        items = []
+        for t in tickets:
+            d = dict(t)
+            d["gross_matches_declared"] = validate_bl_match(
+                declared, float(d["gross_t"])
+            )
+            items.append(d)
+        return {"bl": dict(row), "tickets": items}
 
 
 @router.post("/api/bl")

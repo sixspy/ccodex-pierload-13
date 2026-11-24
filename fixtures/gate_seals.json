@@ -6,5 +6,13 @@
     "manifest": "票号=WT-LN-N-02-IN-001;提单=BL-2026-0104;车牌=鲁H·危3388;毛重=41.0t;闸代=2",
     "status": "已封闸",
     "sealed_at": "2026-01-10T09:00:00"
+  },
+  {
+    "ticket_code": "PL-M13",
+    "seal_ref": "GS-PL-M13-DRAFT",
+    "ticket_generation": 1,
+    "manifest": "票号=PL-M13;提单=BL-2026-0113;车牌=沪D·集1313;毛重=58.5t;闸代=1(影子草稿)",
+    "status": "影子草稿",
+    "sealed_at": "2026-01-13T09:14:00"
   }
 ]

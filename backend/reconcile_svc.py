@@ -58,13 +58,18 @@ def _reconcile_bl(conn, bl_code: str) -> dict:
         }
     ticket_sum = round(sum(float(t["gross_t"]) for t in tickets), 3)
     declared = float(bl["declared_gross_t"])
-    matched = validate_bl_match(declared, ticket_sum, tolerance=0.1)
+    matched = validate_bl_match(declared, ticket_sum)
     seal_rows = conn.execute(
         """SELECT s.seal_ref, s.ticket_generation, t.ticket_code
            FROM gate_seals s JOIN weigh_tickets t ON t.id=s.ticket_id
-           WHERE t.bl_ref=?""",
+           WHERE t.bl_ref=? AND s.status='已封闸'""",
         (bl_code,),
     ).fetchall()
+    shadow_count = conn.execute(
+        """SELECT COUNT(*) c FROM gate_seals s JOIN weigh_tickets t
+           ON t.id=s.ticket_id WHERE t.bl_ref=? AND s.status<>'已封闸'""",
+        (bl_code,),
+    ).fetchone()["c"]
     proof_ok = matched and len(seal_rows) >= 1
     return {
         "bl_code": bl_code,
@@ -73,6 +78,7 @@ def _reconcile_bl(conn, bl_code: str) -> dict:
         "balanced": matched,
         "proof_ready": proof_ok,
         "seal_count": len(seal_rows),
+        "shadow_seal_count": shadow_count,
         "tickets": [dict(t) for t in tickets],
         "seals": [dict(s) for s in seal_rows],
     }
@@ -93,7 +99,8 @@ def proof_ticket(ticket_code: str, authorization: AuthHeader = None):
             "SELECT * FROM bl_manifests WHERE bl_code=?", (ticket["bl_ref"],)
         ).fetchone()
         seal = conn.execute(
-            """SELECT * FROM gate_seals WHERE ticket_id=? ORDER BY id DESC LIMIT 1""",
+            """SELECT * FROM gate_seals WHERE ticket_id=? AND status='已封闸'
+               ORDER BY id DESC LIMIT 1""",
             (ticket["id"],),
         ).fetchone()
         release = conn.execute(

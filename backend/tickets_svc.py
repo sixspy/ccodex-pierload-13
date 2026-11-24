@@ -13,11 +13,28 @@ from validators import (
     adjudicate_overload,
     validate_axle_count,
     validate_axle_weights,
+    validate_bl_match,
     validate_gross_cap,
     validate_lane_open,
 )
 
 router = APIRouter(tags=["tickets"])
+
+
+def _declared_map(conn) -> dict:
+    rows = conn.execute(
+        "SELECT bl_code, declared_gross_t FROM bl_manifests"
+    ).fetchall()
+    return {r["bl_code"]: float(r["declared_gross_t"]) for r in rows}
+
+
+def _with_gross_check(ticket: dict, declared: float | None) -> dict:
+    ticket["bl_declared_gross_t"] = declared
+    ticket["gross_matches_bl"] = bool(
+        declared is not None
+        and validate_bl_match(declared, float(ticket["gross_t"]))
+    )
+    return ticket
 
 
 def _next_ticket_code(conn, lane_id: int) -> str:
@@ -45,10 +62,11 @@ def list_tickets(authorization: AuthHeader = None, status: str | None = None):
         else:
             rows = conn.execute(q + " ORDER BY t.id DESC").fetchall()
         items = []
+        declared = _declared_map(conn)
         for r in rows:
             d = dict(r)
             d["axle_weights"] = json.loads(d["axle_weights"] or "[]")
-            items.append(d)
+            items.append(_with_gross_check(d, declared.get(d["bl_ref"])))
         return {"items": items}
 
 
@@ -68,6 +86,7 @@ def get_ticket(ticket_id: int, authorization: AuthHeader = None):
             raise HTTPException(404, "过磅票不存在")
         data = dict(row)
         data["axle_weights"] = json.loads(data["axle_weights"] or "[]")
+        _with_gross_check(data, _declared_map(conn).get(data["bl_ref"]))
         holds = conn.execute(
             "SELECT * FROM overload_holds WHERE ticket_id=? ORDER BY id DESC",
             (ticket_id,),
@@ -177,6 +196,10 @@ def create_ticket(body: TicketIn, authorization: AuthHeader = None):
                 "gross_t": gross,
                 "status": status,
                 "overload": is_over,
+                "bl_declared_gross_t": float(bl["declared_gross_t"]),
+                "gross_matches_bl": validate_bl_match(
+                    float(bl["declared_gross_t"]), gross
+                ),
             }
         finally:
             release(conn, lock_key, user)

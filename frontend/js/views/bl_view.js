@@ -1,7 +1,7 @@
 export const blViewTemplate = `
 <section class="panel">
   <h2>提单册</h2>
-  <p class="hint">到港提单须先登记，过磅票引用提单号。</p>
+  <p class="hint">到港提单须先登记，过磅票引用提单号；申报毛重与快照读数不符的票禁封闸。</p>
   <div class="form-row">
     <div><label>提单号</label><input v-model="blForm.bl_code"/></div>
     <div><label>货描</label><input v-model="blForm.cargo_desc"/></div>
@@ -13,13 +13,14 @@ export const blViewTemplate = `
     <button class="secondary" @click="refresh">刷新</button>
   </div>
   <table class="data-table">
-    <thead><tr><th>提单</th><th>货描</th><th>申报吨</th><th>航次</th><th>状态</th></tr></thead>
+    <thead><tr><th>提单</th><th>货描</th><th>申报吨</th><th>航次</th><th>毛重核对</th><th>状态</th></tr></thead>
     <tbody>
       <tr v-for="b in blList" :key="b.id">
         <td>{{ b.bl_code }}</td>
         <td>{{ b.cargo_desc }}</td>
         <td>{{ b.declared_gross_t }}</td>
         <td>{{ b.vessel_voyage }}</td>
+        <td><span class="badge" :class="b.gross_mismatch ? 'fail' : 'pass'">{{ b.gross_mismatch ? '不符·禁封' : '符' }}</span></td>
         <td>{{ b.status }}</td>
       </tr>
     </tbody>
